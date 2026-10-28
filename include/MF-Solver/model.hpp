@@ -7,6 +7,10 @@
 //
 using HkFunction = std::function<Eigen::MatrixXcd(const Eigen::Vector3d& k)>;
 
+struct LMatrices {
+    Eigen::Matrix<cd, 3, 3> Lx, Ly, Lz;
+};
+
 // Create the struct which holds the h(k) hopping model
 struct hopping_model{
     std::string name;
@@ -21,7 +25,15 @@ struct hopping_model{
     int a = 1; // lattice constant, default to 1
     Eigen::Matrix3d lattice_vectors;
 
+    // model params
+    struct model_params{
+        double t; // hopping parameter
+    } params;
+
     // The function h(k)
     HkFunction H0;
+
+    // Pre Computed L matrices
+    LMatrices L;
 
 };
