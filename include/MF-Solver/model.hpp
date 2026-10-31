@@ -25,6 +25,10 @@ struct hopping_model{
     int a = 1; // lattice constant, default to 1
     Eigen::Matrix3d lattice_vectors;
 
+    // Encode Symmetry path for plotting band structure
+    struct KPoint {double Kx, Ky, Kz; std::string label;};
+    std::vector<KPoint> symmetry_path;
+
     // model params
     struct model_params{
         double t; // hopping parameter

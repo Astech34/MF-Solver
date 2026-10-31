@@ -36,6 +36,15 @@ hopping_model make_kagome(KagomeParams params)
     const Eigen::Vector3d a2 = m.a * 0.5 * Eigen::Vector3d(1.0, std::sqrt(3.0), 0.0); //AC
     const Eigen::Vector3d a3 = a2 - a1; //BC
 
+    // Symmetry Path
+    // Check These
+    m.symmetry_path = {
+        {0.0, 0.0, 0.0, "Γ"},
+        {1.0/3.0 * m.a, 1.0/3.0 * m.a, 0.0, "K"},
+        {0.5 * m.a, 0.0, 0.0, "M"},
+        {0.0, 0.0, 0.0, "Γ"}
+    };
+
     // k must be Cartesian. The lambda captures t and the bonds by value,
     // so it stays valid after this function returns.
     m.H0 = [t, a1, a2, a3](const Eigen::Vector3d& k) {
