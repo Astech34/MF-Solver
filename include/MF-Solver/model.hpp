@@ -2,13 +2,16 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <functional>
+#include <string>
+#include <vector>
 #include <utility>
 
 //
 using HkFunction = std::function<Eigen::MatrixXcd(const Eigen::Vector3d& k)>;
 
 struct LMatrices {
-    Eigen::Matrix<cd, 3, 3> Lx, Ly, Lz;
+    Eigen::MatrixXcd Lx, Ly, Lz;
 };
 
 // Create the struct which holds the h(k) hopping model
@@ -19,6 +22,9 @@ struct hopping_model{
     int num_orbitals; // orbitals per site
     int num_layers; // layers per cell
 
+    // Total matrix dimension
+    int dim() const { return num_sites * num_orbitals * num_layers; }
+
     int k_dim = 2; // dimension of k-space either 2 or 3
 
     // lattice vectors
@@ -26,7 +32,7 @@ struct hopping_model{
     Eigen::Matrix3d lattice_vectors;
 
     // Encode Symmetry path for plotting band structure
-    struct KPoint {double Kx, Ky, Kz; std::string label;};
+    struct KPoint {double kx, ky, kz; std::string label;};
     std::vector<KPoint> symmetry_path;
 
     // model params

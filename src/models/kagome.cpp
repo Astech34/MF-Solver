@@ -2,7 +2,7 @@
 
 #include <Eigen/Dense>
 
-#include "model.hpp"   // hopping_model, HkFunction
+#include "MF-Solver/models/kagome.hpp"   // hopping_model, HkFunction
 
 // ---------------------------------------------------------------------------
 // Nearest-neighbor kagome model, one s-like orbital per site.
@@ -22,12 +22,23 @@ hopping_model make_kagome(KagomeParams params)
     m.k_dim        = 2;
     m.a      = 1;
 
-    t = params.t; //unpack params
+    const double t = params.t; //unpack params
+
+    // L matrices (in orbital basis)
+    m.L.Lx = Eigen::MatrixXcd::Zero(2, 2);
+    m.L.Ly = Eigen::MatrixXcd::Zero(2, 2);
+
+    const std::complex<double> I(0.0, 1.0);
+
+    Eigen::MatrixXcd Lz(2, 2);
+    Lz << 0.0, -I,
+        I,   0.0;
+    m.L.Lz = Lz;
 
     // Lattice vectors as columns. Third column is a dummy z vector so the
     // matrix stays invertible (needed for the reciprocal vectors).
     m.lattice_vectors.col(0) = m.a * Eigen::Vector3d(1.0, 0.0, 0.0);
-    m.lattice_vectors.col(1) = m.a * Eigen::Vector3d(1.0, std::sqrt(3.0), 0.0);
+    m.lattice_vectors.col(1) = m.a * Eigen::Vector3d(0.5, 0.5 * std::sqrt(3.0), 0.0);
     m.lattice_vectors.col(2) = m.a * Eigen::Vector3d(0.0, 0.0, 1.0);
 
     // Nearest Neighbor
@@ -40,8 +51,8 @@ hopping_model make_kagome(KagomeParams params)
     // Check These
     m.symmetry_path = {
         {0.0, 0.0, 0.0, "Γ"},
-        {1.0/3.0 * m.a, 1.0/3.0 * m.a, 0.0, "K"},
-        {0.5 * m.a, 0.0, 0.0, "M"},
+        {2.0/3.0, 1.0/3.0, 0.0, "K"},
+        {0.5, 0.0, 0.0, "M"},
         {0.0, 0.0, 0.0, "Γ"}
     };
 
@@ -50,9 +61,9 @@ hopping_model make_kagome(KagomeParams params)
     m.H0 = [t, a1, a2, a3](const Eigen::Vector3d& k) {
         Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(3, 3);
 
-        const double hAB = 2 * t * std::cos(k.dot(a1));
-        const double hAC = 2 * t * std::cos(k.dot(a2));
-        const double hBC = 2 * t * std::cos(k.dot(a3));
+        const double hAB = 2 * t * std::cos(0.5 *k.dot(a1));
+        const double hAC = 2 * t * std::cos(0.5 * k.dot(a2));
+        const double hBC = 2 * t * std::cos(0.5 * k.dot(a3));
 
         H(0, 1) = hAB;  H(1, 0) = hAB;
         H(0, 2) = hAC;  H(2, 0) = hAC;

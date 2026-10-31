@@ -116,6 +116,104 @@ depend:
 	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
+#=============================================================================
+# Target rules for targets named mfsolver
+
+# Build rule for target.
+mfsolver: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 mfsolver
+.PHONY : mfsolver
+
+# fast build rule for target.
+mfsolver/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/build
+.PHONY : mfsolver/fast
+
+#=============================================================================
+# Target rules for targets named compute_bands
+
+# Build rule for target.
+compute_bands: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 compute_bands
+.PHONY : compute_bands
+
+# fast build rule for target.
+compute_bands/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compute_bands.dir/build.make CMakeFiles/compute_bands.dir/build
+.PHONY : compute_bands/fast
+
+apps/compute_bands.o: apps/compute_bands.cpp.o
+.PHONY : apps/compute_bands.o
+
+# target to build an object file
+apps/compute_bands.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compute_bands.dir/build.make CMakeFiles/compute_bands.dir/apps/compute_bands.cpp.o
+.PHONY : apps/compute_bands.cpp.o
+
+apps/compute_bands.i: apps/compute_bands.cpp.i
+.PHONY : apps/compute_bands.i
+
+# target to preprocess a source file
+apps/compute_bands.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compute_bands.dir/build.make CMakeFiles/compute_bands.dir/apps/compute_bands.cpp.i
+.PHONY : apps/compute_bands.cpp.i
+
+apps/compute_bands.s: apps/compute_bands.cpp.s
+.PHONY : apps/compute_bands.s
+
+# target to generate assembly for a file
+apps/compute_bands.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compute_bands.dir/build.make CMakeFiles/compute_bands.dir/apps/compute_bands.cpp.s
+.PHONY : apps/compute_bands.cpp.s
+
+src/bands.o: src/bands.cpp.o
+.PHONY : src/bands.o
+
+# target to build an object file
+src/bands.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/src/bands.cpp.o
+.PHONY : src/bands.cpp.o
+
+src/bands.i: src/bands.cpp.i
+.PHONY : src/bands.i
+
+# target to preprocess a source file
+src/bands.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/src/bands.cpp.i
+.PHONY : src/bands.cpp.i
+
+src/bands.s: src/bands.cpp.s
+.PHONY : src/bands.s
+
+# target to generate assembly for a file
+src/bands.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/src/bands.cpp.s
+.PHONY : src/bands.cpp.s
+
+src/models/kagome.o: src/models/kagome.cpp.o
+.PHONY : src/models/kagome.o
+
+# target to build an object file
+src/models/kagome.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/src/models/kagome.cpp.o
+.PHONY : src/models/kagome.cpp.o
+
+src/models/kagome.i: src/models/kagome.cpp.i
+.PHONY : src/models/kagome.i
+
+# target to preprocess a source file
+src/models/kagome.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/src/models/kagome.cpp.i
+.PHONY : src/models/kagome.cpp.i
+
+src/models/kagome.s: src/models/kagome.cpp.s
+.PHONY : src/models/kagome.s
+
+# target to generate assembly for a file
+src/models/kagome.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mfsolver.dir/build.make CMakeFiles/mfsolver.dir/src/models/kagome.cpp.s
+.PHONY : src/models/kagome.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -124,6 +222,17 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... compute_bands"
+	@echo "... mfsolver"
+	@echo "... apps/compute_bands.o"
+	@echo "... apps/compute_bands.i"
+	@echo "... apps/compute_bands.s"
+	@echo "... src/bands.o"
+	@echo "... src/bands.i"
+	@echo "... src/bands.s"
+	@echo "... src/models/kagome.o"
+	@echo "... src/models/kagome.i"
+	@echo "... src/models/kagome.s"
 .PHONY : help
 
 

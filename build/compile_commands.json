@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/home/cmp/Documents/Github/MF-Solver/build",
+  "command": "/usr/bin/g++  -I/home/cmp/Documents/Github/MF-Solver/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/mfsolver.dir/src/bands.cpp.o -c /home/cmp/Documents/Github/MF-Solver/src/bands.cpp",
+  "file": "/home/cmp/Documents/Github/MF-Solver/src/bands.cpp",
+  "output": "CMakeFiles/mfsolver.dir/src/bands.cpp.o"
+},
+{
+  "directory": "/home/cmp/Documents/Github/MF-Solver/build",
+  "command": "/usr/bin/g++  -I/home/cmp/Documents/Github/MF-Solver/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/mfsolver.dir/src/models/kagome.cpp.o -c /home/cmp/Documents/Github/MF-Solver/src/models/kagome.cpp",
+  "file": "/home/cmp/Documents/Github/MF-Solver/src/models/kagome.cpp",
+  "output": "CMakeFiles/mfsolver.dir/src/models/kagome.cpp.o"
+},
+{
+  "directory": "/home/cmp/Documents/Github/MF-Solver/build",
+  "command": "/usr/bin/g++  -I/home/cmp/Documents/Github/MF-Solver/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/compute_bands.dir/apps/compute_bands.cpp.o -c /home/cmp/Documents/Github/MF-Solver/apps/compute_bands.cpp",
+  "file": "/home/cmp/Documents/Github/MF-Solver/apps/compute_bands.cpp",
+  "output": "CMakeFiles/compute_bands.dir/apps/compute_bands.cpp.o"
+}
+]

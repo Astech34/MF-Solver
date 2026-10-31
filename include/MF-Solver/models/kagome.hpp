@@ -1,6 +1,6 @@
 #pragma once
 
-#include "model.hpp"
+#include "MF-Solver/model.hpp"
 
 struct KagomeParams{
     double t; //hopping parameter

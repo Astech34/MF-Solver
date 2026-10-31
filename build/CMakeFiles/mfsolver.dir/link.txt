@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmfsolver.a CMakeFiles/mfsolver.dir/src/bands.cpp.o CMakeFiles/mfsolver.dir/src/models/kagome.cpp.o
+/usr/bin/ranlib libmfsolver.a
