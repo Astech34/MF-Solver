@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 
 #include "MF-Solver/models/kagome.hpp"   // hopping_model, HkFunction
+#include "MF-Solver/hamiltonian.hpp"
 
 // ---------------------------------------------------------------------------
 // Nearest-neighbor kagome model, one s-like orbital per site.
@@ -17,7 +18,7 @@ hopping_model make_kagome(KagomeParams params)
     hopping_model m;
     m.name         = "kagome";
     m.num_sites    = 3;      // A, B, C
-    m.num_orbitals = 1;
+    m.num_orbitals = 2;
     m.num_layers   = 1;
     m.k_dim        = 2;
     m.a      = 1;
@@ -56,12 +57,17 @@ hopping_model make_kagome(KagomeParams params)
         {0.0, 0.0, 0.0, "Γ"}
     };
 
+    // Copy Identity Matrices
+    const auto IL = m.ILayer();
+    const auto IS = m.ISpin();
+    const auto IO = m.IOrbital();
+
     // k must be Cartesian. The lambda captures t and the bonds by value,
     // so it stays valid after this function returns.
-    m.H0 = [t, a1, a2, a3](const Eigen::Vector3d& k) {
+    m.H0 = [t, a1, a2, a3, IL, IS, IO](const Eigen::Vector3d& k) {
         Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(3, 3);
 
-        const double hAB = 2 * t * std::cos(0.5 *k.dot(a1));
+        const double hAB = 2 * t * std::cos(0.5 * k.dot(a1));
         const double hAC = 2 * t * std::cos(0.5 * k.dot(a2));
         const double hBC = 2 * t * std::cos(0.5 * k.dot(a3));
 
@@ -69,7 +75,11 @@ hopping_model make_kagome(KagomeParams params)
         H(0, 2) = hAC;  H(2, 0) = hAC;
         H(1, 2) = hBC;  H(2, 1) = hBC;
 
-        return H;
+        // H is site basis
+        // (layer, site, spin, orbital)
+
+        // H
+        return kron(IL, kron(H, kron(IS, IO)));
     };
 
     return m;

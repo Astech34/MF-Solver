@@ -6,7 +6,7 @@
 #include <iomanip>
 
 // Currently only for hopping model
-void save_bands(const hopping_model& model, int num_points, const std::string& filename){
+void save_bands(const hopping_model& model, const kfree_params& kfp, int num_points, const std::string& filename){
 
     struct PathPoint { double kx, ky; double path_coord; std::string label; };
     std::vector<PathPoint> path;
@@ -44,22 +44,30 @@ void save_bands(const hopping_model& model, int num_points, const std::string& f
     if (!file.is_open())
         throw std::runtime_error("save_bands: could not open " + filename);
 
-        // Header — mu column added
+    // Header
     file << "path_coord,kx,ky,label";
-    for (int b = 0; b < model.dim(); b++)
+    for (int b = 0; b < 2 * model.dim(); b++)
         file << ",band_" << b;
     file << "\n";
 
     file << std::fixed << std::setprecision(8);
 
     for (const auto& pt : path) {
-        Eigen::MatrixXcd H = model.H0(Eigen::Vector3d(pt.kx, pt.ky, 0.0));
+        Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(2 * model.dim(), 2 * model.dim());
+
+        // (layer, site, spin, orbital)
+        // Kinetic Hamiltonian
+        H += model.H0(Eigen::Vector3d(pt.kx, pt.ky, 0.0));
+
+        // Local Hamiltonian
+        H += H_local(model, kfp);
+
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver(H);
         const auto& evals = solver.eigenvalues();
 
         file << pt.path_coord << "," << pt.kx << "," << pt.ky << ","
              << pt.label;
-        for (int b = 0; b < model.dim(); b++)
+        for (int b = 0; b < 2 * model.dim(); b++)
             file << "," << evals[b];
         file << "\n";
     }

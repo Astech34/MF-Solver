@@ -18,12 +18,21 @@ struct LMatrices {
 struct hopping_model{
     std::string name;
 
+    // Our ordering will be
+    // (layer, site, spin, orbital)
+
+    int num_layers; // layers per cell
     int num_sites; // sites per cell
     int num_orbitals; // orbitals per site
-    int num_layers; // layers per cell
 
     // Total matrix dimension
     int dim() const { return num_sites * num_orbitals * num_layers; }
+
+    // Identity matrix for each dimension
+    Eigen::MatrixXcd ILayer() const { return Eigen::MatrixXcd::Identity(num_layers, num_layers); }
+    Eigen::MatrixXcd ISite() const { return Eigen::MatrixXcd::Identity(num_sites, num_sites); }
+    Eigen::MatrixXcd ISpin() const { return Eigen::MatrixXcd::Identity(2, 2); }
+    Eigen::MatrixXcd IOrbital() const { return Eigen::MatrixXcd::Identity(num_orbitals, num_orbitals); }
 
     int k_dim = 2; // dimension of k-space either 2 or 3
 
@@ -40,7 +49,7 @@ struct hopping_model{
         double t; // hopping parameter
     } params;
 
-    // The function h(k)
+    // The function h(k) in complete augmented basis
     HkFunction H0;
 
     // Pre Computed L matrices
