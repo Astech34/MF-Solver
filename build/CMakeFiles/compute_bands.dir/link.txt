@@ -1,1 +1,0 @@
-/usr/bin/g++ -O3 -DNDEBUG CMakeFiles/compute_bands.dir/apps/compute_bands.cpp.o -o compute_bands  libmfsolver.a 
