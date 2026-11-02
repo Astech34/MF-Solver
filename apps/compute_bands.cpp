@@ -9,6 +9,5 @@ int main(){
     std::string filename = "runs/bands.csv";
     kfree_params kfp; // lambda = theta = phi = 0
     kfp.lambda = 0.5;
-    kfp.theta = M_PI / 2;
     save_bands(model, kfp, num_points, filename);
 }

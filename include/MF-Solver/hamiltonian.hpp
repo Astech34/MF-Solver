@@ -19,6 +19,9 @@ struct kfree_params{
     double lambda = 0;
     double theta = 0;
     double phi = 0;
+    double U = 0;
+    double J = 0;
+    double U_prime = U - 2 * J;
 };
 
 struct SpinMatrices {
