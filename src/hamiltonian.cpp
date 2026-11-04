@@ -1,5 +1,5 @@
 #include "MF-Solver/hamiltonian.hpp"
-#include "MF-Solver/model.hpp"
+#include "MF-Solver/interaction.hpp"
 
 #include <cmath>
 
@@ -45,14 +45,16 @@ Eigen::MatrixXcd SOC(const hopping_model& hopping, const kfree_params& kfp){
 
 // Our ordering will be
 // (layer, site, spin, orbital)
-Eigen::MatrixXcd H_local(const hopping_model& hopping, const kfree_params& kfp){
-    const int n = 2 * hopping.dim();
-    Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(n, n);
+basis_matrix H_local(const hopping_model& hopping, const scf_state& scf, const kfree_params& kfp){
+    basis_matrix result(hopping.dims);
 
     // SOC
-    result += kron(hopping.ILayer(), kron(hopping.ISite(), SOC(hopping, kfp)));
+    // add
+    result.dat += kron(hopping.ILayer(), kron(hopping.ISite(), SOC(hopping, kfp)));
 
-    // Eventually add kanamori here.
+    // Kanamori
+    result += kanamori(hopping, scf, kfp);
+
 
     return result;
 }

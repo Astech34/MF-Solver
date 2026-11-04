@@ -1,6 +1,4 @@
-#include "MF-Solver/hamiltonian.hpp"
-#include "MF-Solver/basis_matrix.hpp"
-#include "MF-Solver/scf.hpp"
+#include "MF-Solver/interaction.hpp"
 
 basis_matrix kanamori(const hopping_model& hopping, const scf_state& scf, const kfree_params& kfp) {
     const double U  = kfp.U;
@@ -9,16 +7,16 @@ basis_matrix kanamori(const hopping_model& hopping, const scf_state& scf, const 
 
     // Kanamori is in orbital basis
     // (layer, site, spin, orbital)
-    int nm = hopping.num_orbitals;
-    int dim_kanamori = 2 * hopping.dim(); // total dimension
-    basis_matrix H(hopping);
+    int nm = hopping.dims.num_orbitals;
+    int dim_kanamori = 2 * hopping.dims.total(); // total dimension
+    basis_matrix H(hopping.dims);
 
     // We need to iterate through each layer and each site
     // rho indexing is rho(layer, site, spin, orbital,  layer, site, spin, orbital)
 
     // Iterate through each layer and site
-    for (int ly = 0; ly < hopping.num_layers; ly++) {
-        for (int st = 0; st < hopping.num_sites; st++) {
+    for (int ly = 0; ly < hopping.dims.num_layers; ly++) {
+        for (int st = 0; st < hopping.dims.num_sites; st++) {
             // Access the relevant part of the rho matrix for this layer and site
             // rho(layer, site, spin, orbital, layer, site, spin, orbital)
 
@@ -97,8 +95,6 @@ basis_matrix kanamori(const hopping_model& hopping, const scf_state& scf, const 
             // Kanamori MF End (spin, orbital)
         }
     }
-    
-    assert((H - H.adjoint()).norm() < 1e-10 && "H is not Hermitian!");
 
     // Return the constructed Hamiltonian matrix H
     // Kanamori is in spin . orbital basis

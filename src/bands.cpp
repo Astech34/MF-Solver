@@ -1,4 +1,8 @@
 #include "MF-Solver/bands.hpp"
+#include "MF-Solver/basis_matrix.hpp"
+#include "MF-Solver/initial_density.hpp"
+#include "MF-Solver/scf.hpp"
+#include <Eigen/Dense>
 #include <cmath>
 #include <stdexcept>
 #include <fstream>
@@ -46,28 +50,36 @@ void save_bands(const hopping_model& model, const kfree_params& kfp, int num_poi
 
     // Header
     file << "path_coord,kx,ky,label";
-    for (int b = 0; b < 2 * model.dim(); b++)
+    for (int b = 0; b < model.dims.total(); b++)
         file << ",band_" << b;
     file << "\n";
 
     file << std::fixed << std::setprecision(8);
 
     for (const auto& pt : path) {
-        Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(2 * model.dim(), 2 * model.dim());
+        basis_matrix H(model.dims);
 
         // (layer, site, spin, orbital)
         // Kinetic Hamiltonian
         H += model.H0(Eigen::Vector3d(pt.kx, pt.ky, 0.0));
 
-        // Local Hamiltonian
-        H += H_local(model, kfp);
+        // Create scf state and initalize rho (for testing)
+        scf_state scf(model.dims);
 
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver(H);
+        rho_init_params rho_params;
+        rho_params.kind = rho_init_kind::unpolarized_hfill;
+        initialize_rho(scf.rho, rho_params);
+
+        // Local Hamiltonian
+        H += H_local(model, scf, kfp);
+
+
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver(H.dat);
         const auto& evals = solver.eigenvalues();
 
         file << pt.path_coord << "," << pt.kx << "," << pt.ky << ","
              << pt.label;
-        for (int b = 0; b < 2 * model.dim(); b++)
+        for (int b = 0; b < model.dims.total(); b++)
             file << "," << evals[b];
         file << "\n";
     }

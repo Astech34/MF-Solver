@@ -3,28 +3,19 @@
 #include <cassert>
 #include <complex>
 
-#include "MF-Solver/model.hpp"
+#include "MF-Solver/dims.hpp"
 
+// Initalize by passing in dims (hoppings.dim)
+
+// Index ordering: (layer, site, spin, orbital), orbital fastest
 struct basis_matrix {
     using cplx = std::complex<double>;
-
-    // Index ordering: (layer, site, spin, orbital), orbital fastest
-    struct Dims {
-        int num_layers   = 0;
-        int num_sites    = 0;
-        int num_spin     = 2;
-        int num_orbitals = 0;
-
-        int total() const { return num_layers * num_sites * num_spin * num_orbitals; }
-    };
 
     Dims dims;                // Dimensions of the system
     Eigen::MatrixXcd dat;     // Matrix Data
 
-    explicit basis_matrix(const hopping_model& model) {
-        dims.num_layers   = model.num_layers;
-        dims.num_sites    = model.num_sites;
-        dims.num_orbitals = model.num_orbitals;
+    explicit basis_matrix(const Dims& dms) {
+        dims = dms;
         dat = Eigen::MatrixXcd::Zero(dims.total(), dims.total());
     }
 

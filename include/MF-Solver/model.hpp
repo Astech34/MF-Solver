@@ -1,5 +1,8 @@
 #pragma once
 
+#include "MF-Solver/dims.hpp"
+#include "MF-Solver/basis_matrix.hpp"
+
 #include <Eigen/Dense>
 #include <complex>
 #include <functional>
@@ -8,7 +11,7 @@
 #include <utility>
 
 //
-using HkFunction = std::function<Eigen::MatrixXcd(const Eigen::Vector3d& k)>;
+using HkFunction = std::function<basis_matrix(const Eigen::Vector3d& k)>;
 
 struct LMatrices {
     Eigen::MatrixXcd Lx, Ly, Lz;
@@ -21,18 +24,13 @@ struct hopping_model{
     // Our ordering will be
     // (layer, site, spin, orbital)
 
-    int num_layers; // layers per cell
-    int num_sites; // sites per cell
-    int num_orbitals; // orbitals per site
-
-    // Total matrix dimension
-    int dim() const { return num_sites * num_orbitals * num_layers; }
+    Dims dims; // Dimensions of the system
 
     // Identity matrix for each dimension
-    Eigen::MatrixXcd ILayer() const { return Eigen::MatrixXcd::Identity(num_layers, num_layers); }
-    Eigen::MatrixXcd ISite() const { return Eigen::MatrixXcd::Identity(num_sites, num_sites); }
-    Eigen::MatrixXcd ISpin() const { return Eigen::MatrixXcd::Identity(2, 2); }
-    Eigen::MatrixXcd IOrbital() const { return Eigen::MatrixXcd::Identity(num_orbitals, num_orbitals); }
+    Eigen::MatrixXcd ILayer() const { return Eigen::MatrixXcd::Identity(dims.num_layers, dims.num_layers); }
+    Eigen::MatrixXcd ISite() const { return Eigen::MatrixXcd::Identity(dims.num_sites, dims.num_sites); }
+    Eigen::MatrixXcd ISpin() const { return Eigen::MatrixXcd::Identity(dims.num_spin, dims.num_spin); }
+    Eigen::MatrixXcd IOrbital() const { return Eigen::MatrixXcd::Identity(dims.num_orbitals, dims.num_orbitals); }
 
     int k_dim = 2; // dimension of k-space either 2 or 3
 

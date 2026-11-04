@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 
 #include "MF-Solver/models/kagome.hpp"   // hopping_model, HkFunction
+#include "MF-Solver/basis_matrix.hpp"
 #include "MF-Solver/hamiltonian.hpp"
 
 // ---------------------------------------------------------------------------
@@ -17,9 +18,10 @@ hopping_model make_kagome(KagomeParams params)
 {
     hopping_model m;
     m.name         = "kagome";
-    m.num_sites    = 3;      // A, B, C
-    m.num_orbitals = 2;
-    m.num_layers   = 1;
+    m.dims.num_layers   = 1;
+    m.dims.num_sites    = 3;      // A, B, C
+    m.dims.num_spin     = 2;
+    m.dims.num_orbitals = 2;
     m.k_dim        = 2;
     m.a      = 1;
 
@@ -64,7 +66,7 @@ hopping_model make_kagome(KagomeParams params)
 
     // k must be Cartesian. The lambda captures t and the bonds by value,
     // so it stays valid after this function returns.
-    m.H0 = [t, a1, a2, a3, IL, IS, IO](const Eigen::Vector3d& k) {
+    m.H0 = [t, a1, a2, a3, IL, IS, IO, dims = m.dims](const Eigen::Vector3d& k) {
         Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(3, 3);
 
         const double hAB = 2 * t * std::cos(0.5 * k.dot(a1));
@@ -79,7 +81,11 @@ hopping_model make_kagome(KagomeParams params)
         // (layer, site, spin, orbital)
 
         // H
-        return kron(IL, kron(H, kron(IS, IO)));
+
+        basis_matrix H_aug(dims);
+
+        H_aug.dat = kron(IL, kron(H, kron(IS, IO)));
+        return H_aug;
     };
 
     return m;

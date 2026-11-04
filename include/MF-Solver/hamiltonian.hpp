@@ -1,6 +1,11 @@
 #pragma once
 
+#include <Eigen/Dense>
+#include <complex>
+
+#include "MF-Solver/basis_matrix.hpp"
 #include "MF-Solver/model.hpp"
+#include "MF-Solver/scf.hpp"
 
 using cd = std::complex<double>;
 
@@ -21,7 +26,7 @@ struct kfree_params{
     double phi = 0;
     double U = 0;
     double J = 0;
-    double U_prime = U - 2 * J;
+    double U_prime;
 };
 
 struct SpinMatrices {
@@ -35,3 +40,4 @@ struct complete_model {
 SpinMatrices spin_matrices(double theta, double phi);
 Eigen::MatrixXcd SOC(const hopping_model& hopping, const kfree_params& kfp);
 Eigen::MatrixXcd H_local(const hopping_model& hopping, const kfree_params& kfp);
+basis_matrix H_local(const hopping_model& hopping, const scf_state& scf, const kfree_params& kfp);
