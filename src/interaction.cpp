@@ -1,7 +1,8 @@
 #include "MF-Solver/hamiltonian.hpp"
+#include "MF-Solver/basis_matrix.hpp"
 #include "MF-Solver/scf.hpp"
 
-Eigen::MatrixXcd kanamori(const hopping_model& hopping, const scf_state& scf, const kfree_params& kfp) {
+basis_matrix kanamori(const hopping_model& hopping, const scf_state& scf, const kfree_params& kfp) {
     const double U  = kfp.U;
     const double Up = kfp.U_prime;
     const double J  = kfp.J;
@@ -10,88 +11,97 @@ Eigen::MatrixXcd kanamori(const hopping_model& hopping, const scf_state& scf, co
     // (layer, site, spin, orbital)
     int nm = hopping.num_orbitals;
     int dim_kanamori = 2 * hopping.dim(); // total dimension
-    Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(dim_kanamori, dim_kanamori);
+    basis_matrix H(hopping);
 
     // We need to iterate through each layer and each site
+    // rho indexing is rho(layer, site, spin, orbital,  layer, site, spin, orbital)
 
-    //Kanamori MF Begin
-    double n_up = 0.0, n_dn = 0.0;
-    for (int m = 0; m < nm; m++) {
-        n_up += scf.rho(m,   m  ).real();
-        n_dn += scf.rho(m+nm, m+nm).real();
-    }
+    // Iterate through each layer and site
+    for (int ly = 0; ly < hopping.num_layers; ly++) {
+        for (int st = 0; st < hopping.num_sites; st++) {
+            // Access the relevant part of the rho matrix for this layer and site
+            // rho(layer, site, spin, orbital, layer, site, spin, orbital)
 
-    // Diagonal terms
-    for (int m = 0; m < nm; m++) {
-        const double n_up_m = scf.rho(m,   m  ).real();
-        const double n_dn_m = scf.rho(m+nm, m+nm).real();
+            //Kanamori MF Begin (spin, orbital)
+            double n_up = 0.0, n_dn = 0.0;
+            for (int m = 0; m < nm; m++) {
+                n_up += scf.rho(ly, st, 0, m,   ly, st, 0, m  ).real();
+                n_dn += scf.rho(ly, st, 1, m,   ly, st, 1, m  ).real();
+            }
 
-        // Up Diagonal
-        H(m,   m  ) += U  * n_dn_m
-                     + Up * (n_dn - n_dn_m);
-                     //+ (Up - J) * (n_up - n_up_m);
-        
-        // Down Diagonal
-        H(m+nm, m+nm) += U  * n_up_m
-                     + Up * (n_up - n_up_m);
-                     //+ (Up - J) * (n_dn - n_dn_m);
-        
-        // Hubbard U Off Diagonal Terms
-        H(m+nm, m) -= U * scf.rho(m, m+nm); // -U <d†_{m↑} d_{m↓}> d†_{m↓} d_{m↑}
-        H(m, m+nm) -= U * scf.rho(m+nm, m); // -U <d†_{m↓} d_{m↑}> d†_{m↑} d_{m↓}
-    }
+            // Diagonal terms
+            for (int m = 0; m < nm; m++) {
+                const double n_up_m = scf.rho(ly, st, 0, m,   ly, st, 0, m  ).real();
+                const double n_dn_m = scf.rho(ly, st, 1, m,   ly, st, 1, m  ).real();
 
-    // Off-diagonal terms: exchange (H_exc) and pair-hopping (H_ph)
-    for (int m = 0; m < nm; m++) {
-        for (int mp = 0; mp < nm; mp++) {
-            if (mp == m) continue;
+                // Up Diagonal
+                H(ly, st, 0, m,   ly, st, 0, m  ) += U  * n_dn_m
+                            + Up * (n_dn - n_dn_m);
+                            //+ (Up - J) * (n_up - n_up_m);
+                
+                // Down Diagonal
+                H(ly, st, 1, m, ly, st, 1, m) += U  * n_up_m
+                            + Up * (n_up - n_up_m);
+                            //+ (Up - J) * (n_dn - n_dn_m);
+                
+                // Hubbard U Off Diagonal Terms
+                H(ly, st, 1, m, ly, st, 0, m) -= U * scf.rho(ly, st, 0, m, ly, st, 1, m); // -U <d†_{m↑} d_{m↓}> d†_{m↓} d_{m↑}
+                H(ly, st, 0, m, ly, st, 1, m) -= U * scf.rho(ly, st, 1, m, ly, st, 0, m); // -U <d†_{m↓} d_{m↑}> d†_{m↑} d_{m↓}
+            }
 
-            // Diagonal U'-J
-            // Up Spin
-            H(m,m) += 0.5 * (Up - J) * scf.rho(mp, mp);
-            H(mp,mp) += 0.5 * (Up - J) * scf.rho(m, m);
-            // Up Spin
-            H(m+nm,m+nm) += 0.5 * (Up - J) * scf.rho(mp+nm, mp+nm);
-            H(mp+nm,mp+nm) += 0.5 * (Up - J) * scf.rho(m+nm, m+nm);
+            // Off-diagonal terms: exchange (H_exc) and pair-hopping (H_ph)
+            for (int m = 0; m < nm; m++) {
+                for (int mp = 0; mp < nm; mp++) {
+                    if (mp == m) continue;
 
-            // U' off diagonal terms
-            H(mp+nm, m) -= Up * scf.rho(m, mp+nm);
-            H(m, mp+nm) -= Up * scf.rho(mp+nm, m);
+                    // Diagonal U'-J
+                    // Up Spin
+                    H(ly, st, 0, m, ly, st, 0, m) += 0.5 * (Up - J) * scf.rho(ly, st, 0, mp, ly, st, 0, mp);
+                    H(ly, st, 0, mp, ly, st, 0, mp) += 0.5 * (Up - J) * scf.rho(ly, st, 0, m, ly, st, 0, m);
+                    // Down Spin
+                    H(ly, st, 1, m, ly, st, 1, m) += 0.5 * (Up - J) * scf.rho(ly, st, 1, mp, ly, st, 1, mp);
+                    H(ly, st, 1, mp, ly, st, 1, mp) += 0.5 * (Up - J) * scf.rho(ly, st, 1, m, ly, st, 1, m);
 
-            // U'-J off diagonal
-            // Up Spin
-            H(mp, m) -= 0.5 * (Up - J) * scf.rho(m, mp);
-            H(m, mp) -= 0.5 * (Up - J) * scf.rho(mp, m);
-            // Down Spin
-            H(mp+nm, m+nm) -= 0.5 * (Up - J) * scf.rho(m+nm, mp+nm);
-            H(m+nm, mp+nm) -= 0.5 * (Up - J) * scf.rho(mp+nm, m+nm);
+                    // U' off diagonal terms
+                    H(ly, st, 1, mp, ly, st, 0, m) -= Up * scf.rho(ly, st, 0, m, ly, st, 1, mp);
+                    H(ly, st, 0, m,  ly, st, 1, mp) -= Up * scf.rho(ly, st, 1, mp, ly, st, 0, m);
 
-            // H_exc 1: <d†_{m↑} d_{m'↑}> d†_{m'↓} d_{m↓}
-            H(mp+nm, m+nm) += J * scf.rho(m, mp);
-            // H_ph  1: <d†_{m↑} d_{m'↑}> d†_{m↓} d_{m'↓}
-            H(m+nm, mp+nm) += J * scf.rho(m, mp);
+                    // U'-J off diagonal
+                    // Up Spin
+                    H(ly, st, 0, mp, ly, st, 0, m) -= 0.5 * (Up - J) * scf.rho(ly, st, 0, m, ly, st, 0, mp);
+                    H(ly, st, 0, m, ly, st, 0, mp) -= 0.5 * (Up - J) * scf.rho(ly, st, 0, mp, ly, st, 0, m);
+                    // Down Spin
+                    H(ly, st, 1, mp, ly, st, 1, m) -= 0.5 * (Up - J) * scf.rho(ly, st, 1, m, ly, st, 1, mp);
+                    H(ly, st, 1, m, ly, st, 1, mp) -= 0.5 * (Up - J) * scf.rho(ly, st, 1, mp, ly, st, 1, m);
 
-            // H_exc 2 + H_ph 2: (<d†_{m'↓}d_{m↓}> + <d†_{m↓}d_{m'↓}>) d†_{m↑}d_{m'↑}
-            H(m, mp) += J * (scf.rho(mp+nm, m+nm) + scf.rho(m+nm, mp+nm));
+                    // H_exc 1: <d†_{m↑} d_{m'↑}> d†_{m'↓} d_{m↓}
+                    H(ly, st, 1, mp, ly, st, 1, m) += J * scf.rho(ly, st, 0, m, ly, st, 0, mp);
+                    // H_ph  1: <d†_{m↑} d_{m'↑}> d†_{m↓} d_{m'↓}
+                    H(ly, st, 1, m, ly, st, 1, mp) += J * scf.rho(ly, st, 0, m, ly, st, 0, mp);
 
-            // H_exc 3: -<d†_{m↑} d_{m↓}> d†_{m'↓} d_{m'↑}
-            H(mp+nm, mp) -= J * scf.rho(m, m+nm);
-            // H_ph  3: -<d†_{m↑} d_{m'↓}> d†_{m↓} d_{m'↑}
-            H(m+nm, mp) -= J * scf.rho(m, mp+nm);
+                    // H_exc 2 + H_ph 2: (<d†_{m'↓}d_{m↓}> + <d†_{m↓}d_{m'↓}>) d†_{m↑}d_{m'↑}
+                    H(ly, st, 0, m, ly, st, 0, mp) += J * (scf.rho(ly, st, 1, mp, ly, st, 1, m) + scf.rho(ly, st, 1, m, ly, st, 1, mp));
 
-            // H_exc 4: -<d†_{m'↓} d_{m'↑}> d†_{m↑} d_{m↓}
-            H(m, m+nm) -= J * scf.rho(mp+nm, mp);
-            // H_ph  4: -<d†_{m↓} d_{m'↑}> d†_{m↑} d_{m'↓}
-            H(m, mp+nm) -= J * scf.rho(m+nm, mp);
+                    // H_exc 3: -<d†_{m↑} d_{m↓}> d†_{m'↓} d_{m'↑}
+                    H(ly, st, 1,mp, ly, st, 0, mp) -= J * scf.rho(ly, st, 0, m, ly, st, 1, m);
+                    // H_ph  3: -<d†_{m↑} d_{m'↓}> d†_{m↓} d_{m'↑}
+                    H(ly, st, 1, m, ly, st, 0, mp) -= J * scf.rho(ly, st, 0, m, ly, st, 1, mp);
+
+                    // H_exc 4: -<d†_{m'↓} d_{m'↑}> d†_{m↑} d_{m↓}
+                    H(ly, st, 0, m, ly, st, 1, m) -= J * scf.rho(ly, st, 1, mp, ly, st, 0, mp);
+                    // H_ph  4: -<d†_{m↓} d_{m'↑}> d†_{m↑} d_{m'↓}
+                    H(ly, st, 0, m, ly, st, 1, mp) -= J * scf.rho(ly, st, 1, m, ly, st, 0, mp);
+                }
+            }
+            
+            // Kanamori MF End (spin, orbital)
         }
     }
-    
-    // Kanamori MF End
     
     assert((H - H.adjoint()).norm() < 1e-10 && "H is not Hermitian!");
 
     // Return the constructed Hamiltonian matrix H
     // Kanamori is in spin . orbital basis
     // (layer, site, spin, orbital)
-    return kron(hopping.ILayer(), kron(hopping.ISite(), H));
+    return H;
 }
