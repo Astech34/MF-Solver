@@ -33,7 +33,6 @@ Eigensystem compute_eigensystem_grid(const hopping_model& model, const kfree_par
         const double ky = k_lin[iy];
 
         H = model.H0(Eigen::Vector3d(kx, ky, 0.0)) + Hlocal;
-
         
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver(H);
 
