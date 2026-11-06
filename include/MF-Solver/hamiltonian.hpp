@@ -26,7 +26,7 @@ struct kfree_params{
     double phi = 0;
     double U = 0;
     double J = 0;
-    double U_prime;
+    double U_prime = 0;
 };
 
 struct SpinMatrices {

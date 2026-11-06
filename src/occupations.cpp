@@ -110,14 +110,14 @@ double find_mu(const Eigensystem& sys, double T, double N_target) {
     }
 }
 
-Mat12 compute_density_matrix(const Eigensystem& sys, double mu, double T) {
+basis_matrix compute_density_matrix(const Eigensystem& sys, const Dims dims, double mu, double T) {
     const int N_k = static_cast<int>(sys.evals.size());
 
-    Mat12 rho = Mat12::Zero();
+    eigen::MatrixXcd rho = eigen::MatrixXcd::Zero(dims.total(), dims.total());
 
     #pragma omp parallel
     {
-        Mat12 rho_local = Mat12::Zero();
+        eigen::MatrixXcd rho_local = eigen::MatrixXcd::Zero(dims.total(), dims.total());
 
         #pragma omp for schedule(static)
         for (int idx = 0; idx < N_k; idx++) {
@@ -133,5 +133,8 @@ Mat12 compute_density_matrix(const Eigensystem& sys, double mu, double T) {
         rho += rho_local;
     }
 
-    return rho / static_cast<double>(N_k);
+    basis_matrix r_rho;
+    r_rho.dat = rho / static_cast<double>(N_k);
+
+    return r_rho;
 }

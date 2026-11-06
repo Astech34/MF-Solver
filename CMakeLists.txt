@@ -14,8 +14,11 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 # Core library
 add_library(mfsolver
     src/bands.cpp
+    src/constraints.cpp
+    src/energy.cpp
     src/hamiltonian.cpp
     src/interaction.cpp
+    src/observable.cpp
     src/models/kagome.cpp
 )
 target_include_directories(mfsolver PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

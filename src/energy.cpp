@@ -1,3 +1,13 @@
+#include "MF-Solver/energy.hpp"
+#include "MF-Solver/basis_matrix.hpp"
+#include "MF-Solver/hamiltonian.hpp"
+#include "MF-Solver/kspace.hpp"
+#include "MF-Solver/model.hpp"
+#include "MF-Solver/scf.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 
 double calculate_band_energy(const Eigensystem& sys, double mu, double T) {
     const int N_k     = static_cast<int>(sys.evals.size());
@@ -15,9 +25,11 @@ double calculate_band_energy(const Eigensystem& sys, double mu, double T) {
 }
 
 double kanamori_dc(const hopping_model& hopping, const scf_state& scf, const kfree_params& kfp) {
-    const double U  = kp.U;
-    const double Up = kp.U_prime;
-    const double J  = kp.J;
+    const double U  = kfp.U;
+    const double Up = kfp.U_prime;
+    const double J  = kfp.J;
+
+    const basis_matrix& rho = scf.rho;
 
     double dc = 0.0;
 

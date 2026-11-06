@@ -58,6 +58,36 @@ struct basis_matrix {
         return lhs;
     }
 
+    // Block
+    using Block      = Eigen::Block<Eigen::MatrixXcd>;
+    using ConstBlock = Eigen::Block<const Eigen::MatrixXcd>;
+
+    // Size of one (spin, orbital) block
+    int nb() const { return dims.num_spin * dims.num_orbitals; }
+
+    // (spin, orbital) block coupling (li, ri) to (lj, rj)
+    Block site_block(int li, int ri, int lj, int rj) {
+        return dat.block(idx(li, ri, 0, 0), idx(lj, rj, 0, 0), nb(), nb());
+    }
+    ConstBlock site_block(int li, int ri, int lj, int rj) const {
+        return dat.block(idx(li, ri, 0, 0), idx(lj, rj, 0, 0), nb(), nb());
+    }
+
+    // On-site (diagonal) block for (l, s)
+    Block      site_block(int l, int s)       { return site_block(l, s, l, s); }
+    ConstBlock site_block(int l, int s) const { return site_block(l, s, l, s); }
+
+    // Explicit setters
+    template <typename Derived>
+    void set_site_block(int li, int ri, int lj, int rj, const Eigen::MatrixBase<Derived>& M) {
+        assert(M.rows() == nb() && M.cols() == nb());
+        site_block(li, ri, lj, rj) = M;
+    }
+    template <typename Derived>
+    void set_site_block(int l, int s, const Eigen::MatrixBase<Derived>& M) {
+        set_site_block(l, s, l, s, M);
+    }
+
 private:
     bool same_dims(const basis_matrix& o) const {
         return dims.num_layers == o.dims.num_layers && dims.num_sites == o.dims.num_sites &&
