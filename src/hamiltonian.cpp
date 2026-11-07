@@ -1,5 +1,6 @@
 #include "MF-Solver/hamiltonian.hpp"
 #include "MF-Solver/interaction.hpp"
+#include "MF-Solver/constraints.hpp"
 
 #include <cmath>
 
@@ -54,6 +55,9 @@ basis_matrix H_local(const hopping_model& hopping, const scf_state& scf, const k
 
     // Kanamori
     result += kanamori(hopping, scf, kfp);
+
+    // Spin-constraining field (zero when constraint_params are zero)
+    result += ConstrainField(hopping, scf);
 
 
     return result;

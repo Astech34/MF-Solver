@@ -1,4 +1,10 @@
-#include "MF-Solver/kspace.hpp"
+#include "MF-Solver/occupations.hpp"
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <limits>
+#include <stdexcept>
 
 // -----------------------------------------------------------------------------
 // Brent's method
@@ -72,11 +78,9 @@ double brent(std::function<double(double)> f, double a, double b,
 // -----------------------------------------------------------------------------
 double NTotal(const Eigensystem& sys, double mu, double T) {
     const int N_k     = static_cast<int>(sys.evals.size());
-    const int N_bands = 12;
-
     double n = 0.0;
     for (const auto& ev : sys.evals)
-        for (int b = 0; b < N_bands; b++) {
+        for (int b = 0; b < ev.size(); b++) {
             const double x = std::clamp((ev[b] - mu) / T, -500.0, 500.0);
             n += 1.0 / (std::exp(x) + 1.0);
         }
@@ -112,20 +116,22 @@ double find_mu(const Eigensystem& sys, double T, double N_target) {
 
 basis_matrix compute_density_matrix(const Eigensystem& sys, const Dims dims, double mu, double T) {
     const int N_k = static_cast<int>(sys.evals.size());
+    const int n   = dims.total();
 
-    eigen::MatrixXcd rho = eigen::MatrixXcd::Zero(dims.total(), dims.total());
+    Eigen::MatrixXcd rho = Eigen::MatrixXcd::Zero(n, n);
 
     #pragma omp parallel
     {
-        eigen::MatrixXcd rho_local = eigen::MatrixXcd::Zero(dims.total(), dims.total());
+        Eigen::MatrixXcd rho_local = Eigen::MatrixXcd::Zero(n, n);
 
         #pragma omp for schedule(static)
         for (int idx = 0; idx < N_k; idx++) {
-            for (int band = 0; band < 12; band++) {
+            for (int band = 0; band < n; band++) {
                 const double x = std::clamp((sys.evals[idx][band] - mu) / T, -500.0, 500.0);
                 const double f = 1.0 / (std::exp(x) + 1.0);
-                const Eigen::Vector<cd, 12> v = sys.evecs[idx].col(band);
-                rho_local.noalias() += f * v.conjugate() * v.transpose(); 
+                const Eigen::VectorXcd v = sys.evecs[idx].col(band);
+                // rho_ij = <c_i^† c_j> = sum f conj(v_i) v_j
+                rho_local.noalias() += f * v.conjugate() * v.transpose();
             }
         }
 
@@ -133,7 +139,7 @@ basis_matrix compute_density_matrix(const Eigensystem& sys, const Dims dims, dou
         rho += rho_local;
     }
 
-    basis_matrix r_rho;
+    basis_matrix r_rho(dims);
     r_rho.dat = rho / static_cast<double>(N_k);
 
     return r_rho;

@@ -29,11 +29,25 @@ SpinTilts spin_tilts(const hopping_model& hopping, const scf_state& scf) {
 }
 
 // Not completely necessary might add layer for testing
-/*
-SpinTilts constraint_violation(const hopping_model& hopping, const scf_state& scf) {
-    
+
+ScalarList constraint_violation(const hopping_model& hopping, const scf_state& scf) {
+    const int nlayer = hopping.dims.num_layers;
+    const int nsite = hopping.dims.num_sites;
+
+    const Moments smom = compute_SMoments(hopping, scf);
+    const SpinTilts tilts = spin_tilts(hopping, scf);
+
+    ScalarList violations(nlayer, nsite, 0.0);
+    for (int l = 0; l < nlayer; ++l) {
+        for (int s = 0; s < nsite; ++s) {
+
+            violations(l, s) = smom(l, s).dot(tilts(l, s));
+        }
+    }
+
+    return violations;
 }
-*/
+
 
 basis_matrix ConstrainField(const hopping_model& hopping, const scf_state& scf) {
     

@@ -11,11 +11,9 @@
 
 double calculate_band_energy(const Eigensystem& sys, double mu, double T) {
     const int N_k     = static_cast<int>(sys.evals.size());
-    const int N_bands = 12;
-
     double E = 0.0;
     for (const auto& ev : sys.evals) {
-        for (int b = 0; b < N_bands; b++) {
+        for (int b = 0; b < ev.size(); b++) {
             const double x = std::clamp((ev[b] - mu) / T, -500.0, 500.0);
             const double f = 1.0 / (std::exp(x) + 1.0);
             E += ev[b] * f;
@@ -56,8 +54,6 @@ double kanamori_dc(const hopping_model& hopping, const scf_state& scf, const kfr
                         dc -= Up * (rho(ly, st, 0, m, ly, st, 1, mp) * rho(ly, st, 1, mp, ly, st, 0, m) - 
                                     rho(ly, st, 0, m, ly, st, 0, m) * rho(ly, st, 1, mp, ly, st, 1, mp)).real();
             
-            std::cout << "DC after -U and -U': " << dc << "\n";
-
             // -(U'-J) same-spin: -(U'-J) sum_{m<m', σ} <n_{mσ}><n_{m'σ}>
             for (int m = 0; m < nm; m++)
                 for (int mp = m+1; mp < nm; mp++) {
