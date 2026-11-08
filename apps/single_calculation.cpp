@@ -5,6 +5,7 @@
 #include "MF-Solver/initial_density.hpp"
 #include "MF-Solver/models/kagome.hpp"
 #include "MF-Solver/params.hpp"
+#include "MF-Solver/bands.hpp"
 #include "MF-Solver/scf.hpp"
 
 // Single Kanamori self-consistent mean-field calculation on the kagome model.
@@ -15,7 +16,7 @@ int main() {
     // --- Interaction / SOC parameters -------------------------------------
     kfree_params kfp;  // theta = phi = 0
     kfp.lambda  = 0.5;
-    kfp.U       = 5.0;
+    kfp.U       = 3.0;
     kfp.J       = 0.5;
     kfp.U_prime = kfp.U - 2.0 * kfp.J;
 
@@ -45,6 +46,10 @@ int main() {
     std::cout << std::fixed << std::setprecision(8)
               << "E_total = " << result.energy << "\n"
               << "mu      = " << result.state.mu << "\n";
+
+    std::cout << "Saving Bands...\n";
+    std::string filename = "runs/bands.csv";
+    save_bands(model, kfp, 100, filename);
 
     return 0;
 }

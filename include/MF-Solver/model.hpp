@@ -38,6 +38,11 @@ struct hopping_model{
     int a = 1; // lattice constant, default to 1
     Eigen::Matrix3d lattice_vectors;
 
+    // Compute reciprocal lattice vectors from the direct lattice vectors
+    Eigen::Matrix3d compute_recip_vectors() const {
+        return 2.0 * M_PI * lattice_vectors.inverse().transpose();
+    }
+
     // Encode Symmetry path for plotting band structure
     struct KPoint {double kx, ky, kz; std::string label;};
     std::vector<KPoint> symmetry_path;
