@@ -26,14 +26,19 @@ int main() {
     // --- Simulation parameters --------------------------------------------
     simulation_params sim;  // grid_size = 100, T = 0.05, N_target = 12
     // Half filling: dims.total() single-particle states per k-point
-    sim.N_target = 0.5 * model.dims.total();
+    sim.N_target = 2.0;
+    sim.grid_size = 40;
     const double alpha    = 0.3;   // linear mixing weight for rho
-    const int    max_iter = 500;
+    const int    max_iter = 9999;
     const bool   comp_dft = false; // true: collinear, no-SOC projection of rho
 
     // --- Initial state: unpolarized, half filled, zero constraint fields ---
     scf_state state(model.dims);
-    initialize_rho(state.rho, rho_init_params{});
+    rho_init_params rp;
+    rp.kind = rho_init_kind::random_seed;
+    rp.seed = 40;
+    rp.N_target = 6;
+    initialize_rho(state.rho, rp);
 
     // --- Run SCF -----------------------------------------------------------
     const KanamoriResult result = runKanamoriSCF(
