@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <cassert>
 #include <vector>
 
 // Forward declarations (scf.hpp includes this header, so avoid a cycle)
@@ -23,6 +24,27 @@ struct LayerSiteList {
         for (int s = 1; s < nsite; ++s) tot += (*this)(layer, s);
         return tot;
     }
+
+    // Element-wise arithmetic (shapes must match)
+    LayerSiteList& operator+=(const LayerSiteList& o) {
+        assert(nlayer == o.nlayer && nsite == o.nsite);
+        for (size_t i = 0; i < v.size(); ++i) v[i] += o.v[i];
+        return *this;
+    }
+    LayerSiteList& operator-=(const LayerSiteList& o) {
+        assert(nlayer == o.nlayer && nsite == o.nsite);
+        for (size_t i = 0; i < v.size(); ++i) v[i] -= o.v[i];
+        return *this;
+    }
+    LayerSiteList& operator*=(double a) {
+        for (auto& x : v) x *= a;
+        return *this;
+    }
+
+    friend LayerSiteList operator+(LayerSiteList a, const LayerSiteList& b) { return a += b; }
+    friend LayerSiteList operator-(LayerSiteList a, const LayerSiteList& b) { return a -= b; }
+    friend LayerSiteList operator*(LayerSiteList a, double s) { return a *= s; }
+    friend LayerSiteList operator*(double s, LayerSiteList a) { return a *= s; }
 };
 
 using MomentList = LayerSiteList<Eigen::Vector3d>;

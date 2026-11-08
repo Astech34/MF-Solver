@@ -57,7 +57,8 @@ basis_matrix H_local(const hopping_model& hopping, const scf_state& scf, const k
     result += kanamori(hopping, scf, kfp);
 
     // Spin-constraining field (zero when constraint_params are zero)
-    result += ConstrainField(hopping, scf);
+    // turn off for testing
+    //result += ConstrainField(hopping, scf);
 
 
     return result;

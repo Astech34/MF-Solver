@@ -17,7 +17,7 @@ struct scf_state {
         : rho(dims), constraint_params(dims.num_layers, dims.num_sites, 0.0) {}
 };
 
-enum class MixerType { LinearDIIS };
+enum class MixerType { Linear , DIIS};
 
 // Forward declarations (hamiltonian.hpp includes this header)
 struct hopping_model;
