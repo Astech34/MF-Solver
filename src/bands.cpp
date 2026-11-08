@@ -10,7 +10,7 @@
 #include <iomanip>
 
 // Currently only for hopping model
-void save_bands(const hopping_model& model, const kfree_params& kfp, int num_points, const std::string& filename){
+void save_bands(const hopping_model& model, const scf_state& scf, const kfree_params& kfp, int num_points, const std::string& filename){
 
     struct PathPoint { double kx, ky; double path_coord; std::string label; };
     std::vector<PathPoint> path;
@@ -62,13 +62,6 @@ void save_bands(const hopping_model& model, const kfree_params& kfp, int num_poi
         // (layer, site, spin, orbital)
         // Kinetic Hamiltonian
         H += model.H0(Eigen::Vector3d(pt.kx, pt.ky, 0.0));
-
-        // Create scf state and initalize rho (for testing)
-        scf_state scf(model.dims);
-
-        rho_init_params rho_params;
-        rho_params.kind = rho_init_kind::unpolarized_hfill;
-        initialize_rho(scf.rho, rho_params);
 
         // Local Hamiltonian
         H += H_local(model, scf, kfp);

@@ -20,6 +20,9 @@ int main() {
     kfp.J       = 0.5;
     kfp.U_prime = kfp.U - 2.0 * kfp.J;
 
+    kfp.theta = M_PI / 2;
+    kfp.phi = 0.0;
+
     // --- Simulation parameters --------------------------------------------
     simulation_params sim;  // grid_size = 100, T = 0.05, N_target = 12
     // Half filling: dims.total() single-particle states per k-point
@@ -49,7 +52,7 @@ int main() {
 
     std::cout << "Saving Bands...\n";
     std::string filename = "runs/bands.csv";
-    save_bands(model, kfp, 100, filename);
+    save_bands(model, result.state, kfp, 100, filename);
 
     return 0;
 }

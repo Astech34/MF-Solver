@@ -2,6 +2,7 @@
 
 #include "MF-Solver/bands.hpp"
 #include "MF-Solver/models/kagome.hpp"
+#include "MF-Solver/initial_density.hpp"
 
 int main(){
     hopping_model model = make_kagome({1.0}); // t = 1.0
@@ -15,5 +16,13 @@ int main(){
     kfp.theta = M_PI / 2;
 
     std::string filename = "runs/bands.csv";
-    save_bands(model, kfp, num_points, filename);
+    
+    // Create scf state and initalize rho (for testing)
+    scf_state scf(model.dims);
+
+    rho_init_params rho_params;
+    rho_params.kind = rho_init_kind::unpolarized_hfill;
+    initialize_rho(scf.rho, rho_params);
+
+    save_bands(model, scf, kfp, num_points, filename);
 }
