@@ -1,4 +1,5 @@
 #include <cmath>
+#include <deque>
 #include <iomanip>
 #include <iostream>
 
@@ -23,10 +24,71 @@ void apply_collinear_constraint(Eigen::MatrixXcd& rho, const Dims& d) {
             if (spin_of(i) != spin_of(j)) rho(i, j) = cd(0.0, 0.0);
 }
 
-double l2_norm(const ScalarList& a) {
+double dot(const ScalarList& a, const ScalarList& b) {
     double sum = 0.0;
-    for (double x : a.v) sum += x * x;
-    return std::sqrt(sum);
+    for (size_t i = 0; i < a.v.size(); ++i) sum += a.v[i] * b.v[i];
+    return sum;
+}
+
+double l2_norm(const ScalarList& a) { return std::sqrt(dot(a, a)); }
+
+// Frobenius inner product Re<A, B>_F
+double frob(const Eigen::MatrixXcd& A, const Eigen::MatrixXcd& B) {
+    return (A.array().conjugate() * B.array()).sum().real();
+}
+
+// Enforce Hermiticity (and the collinear projection if requested) on a mixed density.
+void finalize_rho(Eigen::MatrixXcd& rho, const Dims& d, bool comp_dft) {
+    rho = (0.5 * (rho + rho.adjoint())).eval();
+    if (comp_dft) apply_collinear_constraint(rho, d);
+}
+
+// One Pulay history entry: input state and its residual.
+struct DiisEntry {
+    Eigen::MatrixXcd rho;      // rho_in
+    Eigen::MatrixXcd rho_err;  // rho_out - rho_in
+    ScalarList       lam;      // constraint fields in
+    ScalarList       lam_err;  // constraint violation g
+};
+
+// Solve the Pulay system for the mixing coefficients c (Σc_i = 1).
+// B_ij = Re<e_i, e_j>_F + w_con * <g_i, g_j>, normalised by its largest diagonal.
+// Oldest entries are dropped while B is ill-conditioned.
+Eigen::VectorXd diis_coefficients(std::deque<DiisEntry>& hist, double w_con) {
+    constexpr double max_cond = 1e10;
+    constexpr double ridge    = 1e-12;
+
+    while (true) {
+        const int m = static_cast<int>(hist.size());
+        Eigen::MatrixXd B(m, m);
+        for (int i = 0; i < m; ++i)
+            for (int j = i; j < m; ++j)
+                B(i, j) = B(j, i) = frob(hist[i].rho_err, hist[j].rho_err)
+                                  + w_con * dot(hist[i].lam_err, hist[j].lam_err);
+
+        const double scale = B.diagonal().maxCoeff();
+        if (scale > 0.0) B /= scale;
+
+        if (m > 1) {
+            const Eigen::VectorXd sv = Eigen::JacobiSVD<Eigen::MatrixXd>(B).singularValues();
+            if (sv(m - 1) <= 0.0 || sv(0) / sv(m - 1) > max_cond) {
+                hist.pop_front();
+                continue;
+            }
+        }
+
+        //   [B  -1] [c]   [ 0]
+        //   [-1  0] [λ] = [-1]
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m + 1, m + 1);
+        A.topLeftCorner(m, m) = B + ridge * Eigen::MatrixXd::Identity(m, m);
+        A.col(m).head(m).setConstant(-1.0);
+        A.row(m).head(m).setConstant(-1.0);
+
+        Eigen::VectorXd b = Eigen::VectorXd::Zero(m + 1);
+        b(m) = -1.0;
+
+        return A.colPivHouseholderQr().solve(b).head(m);
+    }
 }
 
 } // namespace
@@ -37,31 +99,21 @@ KanamoriResult runKanamoriSCF(const hopping_model& hopping, const scf_state& scf
                               double T, double N_target,
                               MixerType mixer, int max_iter, bool comp_dft)
 {
-    const double tol     = 1e-8;   // TODO: move into Params
-    const double eta_con = 0.1;    // constraint-field step size, TODO: move into Params
-    const double diis_max = 8;
+    // TODO: move into Params
+    const double rho_tol  = 1e-6;
+    const double con_tol  = 999;   // effectively disabled for testing
+    const double eta_con  = 0.1;   // constraint-field step size
+    const int    diis_max = 8;     // Pulay history length
+    const double w_con    = 1.0;   // weight of constraint residual in the DIIS metric
 
-    const Dims& dims  = hopping.dims;
-    const int nlayer  = dims.num_layers;
-    const int nsite   = dims.num_sites;
+    const Dims& dims = hopping.dims;
 
     // scf_in holds the INPUT state (density + constraint fields) for each iteration
     scf_state scf_in = scf;
     if (comp_dft) apply_collinear_constraint(scf_in.rho.dat, dims);
 
-    // DIIS Objects
-    // Frobenius inner product Re<A, B>_F (matches the DIIS residual metric).
-    auto frob = [](const Eigen::MatrixXcd& A, const Eigen::MatrixXcd& B) {
-        return (A.array().conjugate() * B.array()).sum().real();
-    };
-
-    // --- DIIS state ---
-    std::vector<Eigen::MatrixXcd>  diis_rho;      // rho_new history
-    std::vector<Eigen::MatrixXcd>  diis_err;      // residual history: e_i = rho_new_i - rho_i
-    
-    // Store constraints as list of list
-    std::vector<ScalarList> diis_lam;  // con_lam_new history (parallel to diis_rho)
-    std::vector<ScalarList> diis_lam_err;  // con_lam residual history (parallel to diis_rho)
+    std::deque<DiisEntry> diis_hist;
+    const std::string s_type = (mixer == MixerType::Linear) ? "[Linear]" : "[DIIS]";
 
     for (int it = 0; it < max_iter; ++it) {
         // 1. Diagonalize H[rho_in, lambda_in]
@@ -81,28 +133,17 @@ KanamoriResult runKanamoriSCF(const hopping_model& hopping, const scf_state& scf
         scf_out.mu      = mu;
 
         // 3. Residuals, evaluated before anything is updated
-        const ScalarList g     = constraint_violation(hopping, scf_out);
-        const double rho_diff  = (rho_out - scf_in.rho.dat).norm();
-        const double con_err   = l2_norm(g);
-
-        ScalarList g_new(hopping.dims.num_layers, hopping.dims.num_sites, 0.0); 
-        g_new = g + eta_con * g;
-        ScalarList g_err(hopping.dims.num_layers, hopping.dims.num_sites, 0.0); 
-        g_err = g_new - g;
-
-        std::string s_type;
-        if (mixer == MixerType::Linear) {
-            s_type = "[Linear]";
-        } else {
-            s_type = "[DIIS]";
-        }
+        const Eigen::MatrixXcd rho_err = rho_out - scf_in.rho.dat;
+        const ScalarList g             = constraint_violation(hopping, scf_out);
+        const double rho_diff          = rho_err.norm();
+        const double con_err           = l2_norm(g);
 
         std::cout << "\r" << s_type << " Iter " << std::setw(5) << it
                   << "  |Δρ|_F = " << std::scientific << std::setprecision(4) << rho_diff
                   << "  |g| = " << con_err << "   " << std::flush;
 
-        // 4. Convergence con_err < 1 (fix only for testing)
-        if (rho_diff < 1e-6 && con_err < 999) {
+        // 4. Convergence
+        if (rho_diff < rho_tol && con_err < con_tol) {
             const double bandsum = calculate_band_energy(sys, mu, T);
             const double dc      = kanamori_dc(hopping, scf_out, kfp);
             scf_out.energy      = bandsum - dc;
@@ -118,75 +159,34 @@ KanamoriResult runKanamoriSCF(const hopping_model& hopping, const scf_state& scf
             return {scf_out, scf_out.energy, true};
         }
 
-        // 5. Linear mix of rho (symmetrized), gradient step on constraint fields
+        // 5. Mix. Both mixers take a damped step from the input state:
+        //      rho <- rho_in + alpha * e,   lambda <- lambda_in + eta * g
+        //    DIIS replaces (rho_in, e, lambda_in, g) by their Pulay-optimal combination.
+        //    With a single history entry this reduces exactly to linear mixing.
         if (mixer == MixerType::Linear) {
-            const Eigen::MatrixXcd rho_mix = alpha * rho_out + (1.0 - alpha) * scf_in.rho.dat;
-            scf_in.rho.dat = 0.5 * (rho_mix + rho_mix.adjoint());
+            scf_in.rho.dat           += alpha * rho_err;
+            scf_in.constraint_params += eta_con * g;
+        } else {
+            diis_hist.push_back({scf_in.rho.dat, rho_err, scf_in.constraint_params, g});
+            if (static_cast<int>(diis_hist.size()) > diis_max) diis_hist.pop_front();
+
+            const Eigen::VectorXd c = diis_coefficients(diis_hist, w_con);
+
+            Eigen::MatrixXcd rho_opt = Eigen::MatrixXcd::Zero(rho_out.rows(), rho_out.cols());
+            Eigen::MatrixXcd err_opt = Eigen::MatrixXcd::Zero(rho_out.rows(), rho_out.cols());
+            ScalarList lam_opt(dims.num_layers, dims.num_sites, 0.0);
+            ScalarList g_opt  (dims.num_layers, dims.num_sites, 0.0);
+            for (int i = 0; i < c.size(); ++i) {
+                rho_opt += c(i) * diis_hist[i].rho;
+                err_opt += c(i) * diis_hist[i].rho_err;
+                lam_opt += c(i) * diis_hist[i].lam;
+                g_opt   += c(i) * diis_hist[i].lam_err;
+            }
+
+            scf_in.rho.dat           = rho_opt + alpha * err_opt;
+            scf_in.constraint_params = lam_opt + eta_con * g_opt;
         }
-        else {
-            // DIIS Mixing
-            diis_rho.push_back(rho_out);
-            diis_err.push_back(rho_out - scf_in.rho.dat);
-            
-            diis_lam.push_back(g_new);
-            diis_lam_err.push_back(g_err);
-
-            // Manage history 
-            if (static_cast<int>(diis_rho.size()) > diis_max) {
-                diis_rho.erase(diis_rho.begin());
-                diis_err.erase(diis_err.begin());
-                
-                diis_lam.erase(diis_lam.begin());
-                diis_lam_err.erase(diis_lam_err.begin());
-            }
-
-            const int m = static_cast<int>(diis_rho.size());
-
-            // Build (m+1)×(m+1) Pulay system
-            //   [B   -1] [c]   [ 0]
-            //   [-1   0] [λ] = [-1]
-            // B_ij = Re(<e_i, e_j>_F) + e^lam_i e^lam_j,  Σc_i = 1 enforced by λ
-            Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m + 1, m + 1);
-            Eigen::VectorXd b = Eigen::VectorXd::Zero(m + 1);
-            b(m) = -1.0;
-
-            for (int ii = 0; ii < m; ii++) {
-                for (int jj = ii; jj < m; jj++) {
-                    
-                    double Bij = frob(diis_err[ii], diis_err[jj]);
-                    
-                    // Add Errors for each (layer, site)
-                    for (int ly = 0; ly < hopping.dims.num_layers; ly++) {
-                        for (int st = 0; st < hopping.dims.num_sites; st++) {
-                            Bij += diis_lam_err[ii](ly, st) * diis_lam_err[jj](ly, st);
-                        }
-                    }
-
-                    A(ii, jj) = Bij;
-                    A(jj, ii) = Bij;
-                }
-                A(ii, m) = -1.0;
-                A(m, ii) = -1.0;
-            }
-
-            const Eigen::VectorXd c = A.colPivHouseholderQr().solve(b);
-
-            Eigen::MatrixXcd rho_s = Eigen::MatrixXd::Zero(scf.rho.dat.rows(), scf.rho.dat.cols());
-            ScalarList lam_s(hopping.dims.num_layers, hopping.dims.num_sites, 0.0);
-            for (int ii = 0; ii < m; ii++) {
-                rho_s.noalias() += c(ii) * diis_rho[ii];
-
-                for (int ly = 0; ly < hopping.dims.num_layers; ly++) {
-                        for (int st = 0; st < hopping.dims.num_sites; st++) {
-                            lam_s(ly, st) = lam_s(ly, st) + c(ii) * diis_lam[ii](ly, st);
-                    }
-                }
-            }
-        }
-
-        for (int l = 0; l < nlayer; ++l)
-            for (int s = 0; s < nsite; ++s)
-                scf_in.constraint_params(l, s) += eta_con * g(l, s);
+        finalize_rho(scf_in.rho.dat, dims, comp_dft);
 
         scf_in.mu = mu;
     }

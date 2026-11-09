@@ -49,7 +49,7 @@ void save_bands(const hopping_model& model, const scf_state& scf, const kfree_pa
         throw std::runtime_error("save_bands: could not open " + filename);
 
     // Header
-    file << "path_coord,kx,ky,label";
+    file << "path_coord,kx,ky,label,mu";
     for (int b = 0; b < model.dims.total(); b++)
         file << ",band_" << b;
     file << "\n";
@@ -71,7 +71,7 @@ void save_bands(const hopping_model& model, const scf_state& scf, const kfree_pa
         const auto& evals = solver.eigenvalues();
 
         file << pt.path_coord << "," << pt.kx << "," << pt.ky << ","
-             << pt.label;
+             << pt.label << "," << scf.mu;
         for (int b = 0; b < model.dims.total(); b++)
             file << "," << evals[b];
         file << "\n";

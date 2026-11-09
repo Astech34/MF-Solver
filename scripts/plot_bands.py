@@ -48,7 +48,9 @@ def load_bands(path):
     k = np.array([float(r[i_coord]) for r in rows])
     bands = np.array([[float(r[i]) for i in band_cols] for r in rows])
     ticks = [(float(r[i_coord]), r[i_label]) for r in rows if r[i_label]]
-    return k, bands, ticks
+    # Older CSVs have no mu column; fall back to 0 (plots E rather than E - mu)
+    mu = float(rows[0][header.index("mu")]) if "mu" in header else 0.0
+    return k, bands - mu, ticks
 
 
 def main():
@@ -70,7 +72,8 @@ def main():
     ax.tick_params(axis="x", length=0)
 
     ax.set_xlim(k[0], k[-1])
-    ax.set_ylabel(r"$E/t$")
+    ax.axhline(0.0, color="k", lw=0.5, ls="--")
+    ax.set_ylabel(r"$(E-\mu)/t$")
 
     out = args.output or args.csv.with_name("bands.png")
     fig.savefig(out, dpi=300)

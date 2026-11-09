@@ -29,8 +29,9 @@ struct KanamoriResult {
     bool converged;
 };
 
-// Self-consistent Kanamori mean-field loop. Currently only linear mixing is
-// implemented; `mixer` is accepted for future use.
+// Self-consistent Kanamori mean-field loop. `mixer` selects linear mixing or
+// damped Pulay (DIIS) mixing of the density and constraint fields; `alpha` is
+// the density damping used by both.
 KanamoriResult runKanamoriSCF(const hopping_model& hopping, const scf_state& scf,
                               const kfree_params& kfp,
                               double alpha, int grid_size,

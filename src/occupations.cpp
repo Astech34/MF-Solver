@@ -1,4 +1,5 @@
 #include "MF-Solver/occupations.hpp"
+#include "MF-Solver/scf.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -143,4 +144,17 @@ basis_matrix compute_density_matrix(const Eigensystem& sys, const Dims dims, dou
     r_rho.dat = rho / static_cast<double>(N_k);
 
     return r_rho;
+}
+
+Occupations compute_occupations(const scf_state& scf) {
+    const basis_matrix& rho = scf.rho;
+    const Dims& d = rho.dims;
+
+    Occupations occ(d);
+    for (int l = 0; l < d.num_layers; ++l)
+        for (int s = 0; s < d.num_sites; ++s)
+            for (int sp = 0; sp < d.num_spin; ++sp)
+                for (int o = 0; o < d.num_orbitals; ++o)
+                    occ(l, s, sp, o) = rho(l, s, sp, o, l, s, sp, o).real();
+    return occ;
 }

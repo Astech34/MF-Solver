@@ -29,9 +29,9 @@ Moments compute_LMoments(const hopping_model& hopping, const scf_state& scf){
             // <O> = Tr(rho O) for rho_ij = <c_j^† c_i>;
             // use O.transpose() instead if rho_ij = <c_i^† c_j>
             out(l, s) = Eigen::Vector3d(
-                (blk * Lx_op).trace().real(),
-                (blk * Ly_op).trace().real(),
-                (blk * Lz_op).trace().real());
+                (blk * Lx_op.transpose()).trace().real(),
+                (blk * Ly_op.transpose()).trace().real(),
+                (blk * Lz_op.transpose()).trace().real());
         }
     }
     return out;
@@ -64,9 +64,9 @@ Moments compute_SMoments(const hopping_model& hopping, const scf_state& scf){
             // <O> = Tr(rho O) for rho_ij = <c_j^† c_i>;
             // use O.transpose() instead if rho_ij = <c_i^† c_j>
             out(l, s) = Eigen::Vector3d(
-                (blk * Sx_op).trace().real(),
-                (blk * Sy_op).trace().real(),
-                (blk * Sz_op).trace().real());
+                (blk * Sx_op.transpose()).trace().real(),
+                (blk * Sy_op.transpose()).trace().real(),
+                (blk * Sz_op.transpose()).trace().real());
         }
     }
     return out;

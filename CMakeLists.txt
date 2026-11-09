@@ -22,6 +22,7 @@ add_library(mfsolver
     src/kspace.cpp
     src/observable.cpp
     src/occupations.cpp
+    src/output.cpp
     src/scf.cpp
     src/models/kagome.cpp
 )
@@ -37,3 +38,6 @@ target_link_libraries(compute_bands PRIVATE mfsolver)
 
 add_executable(single_calculation apps/single_calculation.cpp)
 target_link_libraries(single_calculation PRIVATE mfsolver)
+
+add_executable(find_gs apps/find_gs.cpp)
+target_link_libraries(find_gs PRIVATE mfsolver)
