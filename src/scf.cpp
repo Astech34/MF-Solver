@@ -100,7 +100,7 @@ KanamoriResult runKanamoriSCF(const hopping_model& hopping, const scf_state& scf
                               MixerType mixer, int max_iter, bool comp_dft)
 {
     // TODO: move into Params
-    const double rho_tol  = 1e-6;
+    const double rho_tol  = 1e-7;
     const double con_tol  = 999;   // effectively disabled for testing
     const double eta_con  = 0.1;   // constraint-field step size
     const int    diis_max = 8;     // Pulay history length

@@ -22,9 +22,10 @@ int main() {
     // --- Interaction / SOC parameters -------------------------------------
     kfree_params kfp;  // theta = phi = 0
     kfp.lambda  = 0.1;
-    kfp.U       = 5.0;
+    kfp.U       = 2.1;
     kfp.J       = 0.7;
-    kfp.U_prime = kfp.U - 2.0 * kfp.J;
+    //kfp.U_prime = kfp.U - 2.0 * kfp.J;
+    kfp.U_prime = kfp.J;
 
     kfp.theta = 0.0;
     kfp.phi   = 0.0;
