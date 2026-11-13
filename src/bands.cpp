@@ -2,8 +2,12 @@
 #include "MF-Solver/basis_matrix.hpp"
 #include "MF-Solver/initial_density.hpp"
 #include "MF-Solver/scf.hpp"
+#include "MF-Solver/kspace.hpp"
 #include <Eigen/Dense>
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <vector>
 #include <stdexcept>
 #include <fstream>
 #include <iostream>
@@ -79,4 +83,63 @@ void save_bands(const hopping_model& model, const scf_state& scf, const kfree_pa
 
     std::cout << "Band structure written to " << filename
               << " (" << path.size() << " k-points)\n";
+}
+
+// Density of states per unit cell from H(k) = H0(k) + H_local[scf] on a
+// grid_size x grid_size k-grid, with Gaussian broadening of width sigma:
+//   D(E) = (1/N_k) sum_{k,n} exp(-(E - e_nk)^2 / 2 sigma^2) / (sqrt(2 pi) sigma)
+// Integrates to dims.total() (number of bands, spin included).
+void save_dos(const hopping_model& model, const scf_state& scf, const kfree_params& kfp,
+              int grid_size, int num_energies, double sigma, const std::string& filename){
+
+    if (num_energies < 2)
+        throw std::runtime_error("save_dos: num_energies must be >= 2");
+    if (sigma <= 0.0)
+        throw std::runtime_error("save_dos: sigma must be positive");
+
+    const Eigensystem es = compute_eigensystem_grid(model, scf, kfp, grid_size);
+    const int n_k = static_cast<int>(es.evals.size());
+
+    // Energy window: band extrema padded by 5 sigma so the tails are captured
+    double e_min =  std::numeric_limits<double>::infinity();
+    double e_max = -std::numeric_limits<double>::infinity();
+    for (const auto& ev : es.evals) {
+        e_min = std::min(e_min, ev.minCoeff());
+        e_max = std::max(e_max, ev.maxCoeff());
+    }
+    e_min -= 5.0 * sigma;
+    e_max += 5.0 * sigma;
+
+    const double dE   = (e_max - e_min) / (num_energies - 1);
+    const double norm = 1.0 / (std::sqrt(2.0 * M_PI) * sigma * n_k);
+    const double inv_2s2 = 1.0 / (2.0 * sigma * sigma);
+    const double cutoff  = 6.0 * sigma;  // Gaussian negligible beyond this
+
+    std::vector<double> dos(num_energies, 0.0);
+
+    // Bin each eigenvalue into the energies within its cutoff window
+    for (const auto& ev : es.evals) {
+        for (int b = 0; b < ev.size(); b++) {
+            const double e = ev[b];
+            const int i_lo = std::max(0, static_cast<int>(std::floor((e - cutoff - e_min) / dE)));
+            const int i_hi = std::min(num_energies - 1, static_cast<int>(std::ceil((e + cutoff - e_min) / dE)));
+            for (int i = i_lo; i <= i_hi; i++) {
+                const double x = e_min + i * dE - e;
+                dos[i] += std::exp(-x * x * inv_2s2);
+            }
+        }
+    }
+
+    std::ofstream file(filename);
+    if (!file.is_open())
+        throw std::runtime_error("save_dos: could not open " + filename);
+
+    file << "energy,mu,dos\n";
+    file << std::fixed << std::setprecision(8);
+    for (int i = 0; i < num_energies; i++)
+        file << e_min + i * dE << "," << scf.mu << "," << dos[i] * norm << "\n";
+
+    std::cout << "DOS written to " << filename
+              << " (" << n_k << " k-points, " << num_energies
+              << " energies, sigma = " << sigma << ")\n";
 }

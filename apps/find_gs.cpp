@@ -107,6 +107,8 @@ int main() {
 
     std::cout << "Saving Bands...\n";
     save_bands(model, best->state, kfp, 100, "runs/bands.csv");
+    std::cout << "Saving DOS...\n";
+    save_dos(model, best->state, kfp, 100, 1000, 0.05, "runs/dos.csv");
 
     return confirmed ? 0 : 1;
 }

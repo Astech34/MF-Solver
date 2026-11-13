@@ -25,4 +25,7 @@ int main(){
     initialize_rho(scf.rho, rho_params);
 
     save_bands(model, scf, kfp, num_points, filename);
+
+    // DOS: 100x100 k-grid, 1000 energies, Gaussian broadening sigma = 0.05 t
+    save_dos(model, scf, kfp, 100, 1000, 0.05, "runs/dos.csv");
 }
